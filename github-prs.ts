@@ -6,7 +6,7 @@ import '@johnlindquist/kit';
 const result = await $` /opt/homebrew/bin/gh search prs \
   --repo capabuild/capabuild \
   --state open \
-  --review-requested cket \
+  --review-requested sjotterman \
   --json author,body,id,isDraft,isPullRequest,number,title,updatedAt,assignees,labels,state,url,commentsCount \
   --review required
 `;
@@ -41,18 +41,17 @@ try {
 } catch (error) {
   div(
     md(`## Error
+  ${error}
   `)
   );
   dev({ error });
   await $`exit 1`;
 }
-dev({ prs });
 
 const formattedPRs = prs.map((pr) => {
   return {
     name: `${pr.title} - ${pr.author.login} - ${pr.commentsCount} comment(s)`,
     description: `${pr.body}`,
-    // add any properties to "value"
     value: pr,
   };
 });
