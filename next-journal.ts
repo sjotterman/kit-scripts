@@ -1,5 +1,5 @@
 /*
-he Markdown Journal
+# Markdown Journal
 - Creates a new markdown file based on the day (or opens existing file)
 - Opens the file in the built-in editor
 - Adds a timestamp
@@ -7,8 +7,7 @@ he Markdown Journal
 - On first run, will prompt the user to select where to store files
 */
 
-// Name: Log Activity
-// shortcut: cmd + j
+// Name: Next daily log
 
 import { createPathResolver } from '@johnlindquist/kit';
 import _ from 'lodash';
@@ -24,33 +23,49 @@ let journalPath = createPathResolver(journalDir);
 await ensureDir(journalPath());
 cd(journalPath());
 
-let dashedDate = format(new Date(), 'yyyy-MM-dd');
+const today = new Date();
+const tomorrow = today.setDate(today.getDate() + 1);
+const dates = [tomorrow];
+for (let i = 0; i < 6; i++) {
+  dates.push(dates[i] + 86400000);
+}
+
+const options = dates.map((num, index) => {
+  const selectedDate = new Date(num);
+  const readableDate = format(selectedDate, 'yyyy-MM-dd');
+  const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+  const name = index === 0 ? 'Tomorrow' : dayName;
+  const fileHeading = `${readableDate} - ${dayName}`;
+  return {
+    name,
+    description: readableDate,
+    value: {
+      readableDate,
+      originalDate: num,
+      fileHeading,
+    },
+  };
+});
+let selectedDate = await arg('Select date', options);
+
+// let dashedDate = format(new Date(selectedDate.originalDate), 'yyyy-MM-dd');
+let dashedDate = selectedDate.readableDate;
 
 let filePath = journalPath(dashedDate + '.md');
 setDescription(filePath);
-
 const defaultContent = `
 tags: #journal #capabuild #work
 links: [[journal]]
 
 ---
-${dashedDate}
+${selectedDate.fileHeading}
 `;
 
 let value = await ensureReadFile(filePath, defaultContent);
 
-let dashedTime = format(new Date(), 'hh:mm a');
-
-if (!value.includes(dashedTime)) {
-  value = `${value}
-
-## ${dashedTime}
-`;
-}
-
 let changed = false;
 
-let autoSave = _.debounce(async (input) => {
+let autoSave = _.debounce(async (input: string) => {
   await writeFile(filePath, input.trim());
 }, 3000);
 
@@ -88,6 +103,7 @@ let content = await editor({
     autoSave(input);
   },
 });
+hide();
 
 let trimmed = content.trim();
 if (!changed) {
@@ -95,18 +111,3 @@ if (!changed) {
 }
 
 await writeFile(filePath, trimmed);
-
-copy(content.split(/##.*/).pop().trim());
-
-// Push changes if the path is a git repo
-let isGit = await isDir(journalPath('.git'));
-if (isGit) {
-  try {
-    let { stdout } = await exec(
-      `git add . && git commit -m "${dashedDate}-${dashedTime}" && git push`
-    );
-    log({ stdout });
-  } catch (error) {
-    log(error);
-  }
-}

@@ -1,5 +1,5 @@
 /*
-he Markdown Journal
+# Markdown Journal
 - Creates a new markdown file based on the day (or opens existing file)
 - Opens the file in the built-in editor
 - Adds a timestamp
@@ -7,8 +7,8 @@ he Markdown Journal
 - On first run, will prompt the user to select where to store files
 */
 
-// Name: Log Activity
-// shortcut: cmd + j
+// Name: Daily Journal
+// shortcut: cmd+shift+j
 
 import { createPathResolver } from '@johnlindquist/kit';
 import _ from 'lodash';
@@ -28,16 +28,7 @@ let dashedDate = format(new Date(), 'yyyy-MM-dd');
 
 let filePath = journalPath(dashedDate + '.md');
 setDescription(filePath);
-
-const defaultContent = `
-tags: #journal #capabuild #work
-links: [[journal]]
-
----
-${dashedDate}
-`;
-
-let value = await ensureReadFile(filePath, defaultContent);
+let value = await ensureReadFile(filePath, `# ${dashedDate}`);
 
 let dashedTime = format(new Date(), 'hh:mm a');
 
@@ -45,6 +36,7 @@ if (!value.includes(dashedTime)) {
   value = `${value}
 
 ## ${dashedTime}
+
 `;
 }
 
@@ -88,6 +80,7 @@ let content = await editor({
     autoSave(input);
   },
 });
+hide();
 
 let trimmed = content.trim();
 if (!changed) {
